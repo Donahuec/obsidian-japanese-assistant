@@ -12,7 +12,10 @@ export default class JPAssistPlugin extends Plugin {
     async onload() {
         await this.loadSettings();
 
-        this.registerView(JP_ASSIST_VIEW, (leaf) => new JPAssistView(leaf));
+        this.registerView(
+            JP_ASSIST_VIEW,
+            (leaf) => new JPAssistView(leaf, this)
+        );
 
         this.addRibbonIcon('languages', 'Japanese Assistant', () => {
             this.activateView();
