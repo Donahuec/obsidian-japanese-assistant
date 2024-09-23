@@ -3,6 +3,8 @@ import { Root, createRoot } from 'react-dom/client';
 import { AppContext, useApp } from 'src/Context/AppContext';
 import './JPAssistView.css';
 import { OpenAI } from 'openai';
+import { useState, useEffect } from 'react';
+import JPAssistPlugin from 'main';
 
 export interface JPAssistMessage {
     role: 'user' | 'assistant';
@@ -24,68 +26,6 @@ const systemPrompt = `You are a native Japanese Speaker named Mariko-Sensei tuto
 	You should always provide a response in English.
 	`;
 
-let client: OpenAI;
-let assistant: OpenAI.Beta.Assistant;
-let thread: OpenAI.Beta.Threads.Thread;
-// create a mutable list to store the chat history
-let history: JPAssistMessage[] = [];
-
-let lastResponse = '';
-
-async function createAssistant(
-    openAIKey: string,
-    setChat: (text: string) => void,
-    setResponses: (responses: JPAssistMessage[]) => void
-) {
-    client = new OpenAI({
-        apiKey: openAIKey,
-        dangerouslyAllowBrowser: true, // This is the default and can be omitted
-    });
-    assistant = await client.beta.assistants.create({
-        name: 'Japanese Assistant',
-        instructions: systemPrompt,
-        model: 'gpt-4o-mini',
-    });
-    thread = await client.beta.threads.create();
-    sendMessage('Please Introduce Yourself', setChat, setResponses);
-}
-
-async function sendMessage(
-    text: string,
-    setChat: (text: string) => void,
-    setResponses: (responses: JPAssistMessage[]) => void
-) {
-    history.push({ role: 'user', content: text });
-    setResponses(history);
-    setChat(lastResponse);
-    const message = await client.beta.threads.messages.create(thread.id, {
-        role: 'user',
-        content: text,
-    });
-    const run = client.beta.threads.runs
-        .stream(thread.id, {
-            assistant_id: assistant.id,
-        })
-        .on('textCreated', (text) => {
-            lastResponse = '';
-        })
-        .on('textDelta', (textDelta, snapshot) => {
-            if (textDelta.value !== undefined) {
-                lastResponse += textDelta.value;
-                setChat(lastResponse);
-            }
-        })
-        .on('textDone', () => {
-            history.push({ role: 'assistant', content: lastResponse });
-            setResponses(history);
-            lastResponse = '';
-            setChat(lastResponse);
-        });
-}
-
-import { useState, useEffect } from 'react';
-import JPAssistPlugin from 'main';
-
 interface JPAssistReactViewProps {
     plugin: JPAssistPlugin;
 }
@@ -98,13 +38,75 @@ const JPAssistReactView = ({ plugin }: JPAssistReactViewProps) => {
     const [request, setRequest] = useState<string>(defaultRequest);
     let tr = '';
 
-    plugin.loadSettings();
+    let history: JPAssistMessage[] = [];
+    let currentResponse = '';
 
+    plugin.loadSettings();
     const settings = plugin.settings;
+    if (!settings.openAIKey) {
+        return <h4>OpenAI Key not set</h4>;
+    }
+
+    let client: OpenAI = new OpenAI({
+        apiKey: settings.openAIKey,
+        dangerouslyAllowBrowser: true, // This is the default and can be omitted
+    });
+    let assistant: OpenAI.Beta.Assistant;
+    let thread: OpenAI.Beta.Threads.Thread;
+
+    function buildStreamingText(text: string) {
+        currentResponse += text;
+        setChat(currentResponse);
+    }
+
+    function resetStreamingText() {
+        currentResponse = '';
+        setChat(currentResponse);
+    }
+
+    async function sendMessage(text: string, hidden: boolean = false) {
+        if (!hidden) {
+            history.push({ role: 'user', content: text });
+            setResponses(history);
+            resetStreamingText();
+        }
+
+        const message = await client.beta.threads.messages.create(thread.id, {
+            role: 'user',
+            content: text,
+        });
+        const run = client.beta.threads.runs
+            .stream(thread.id, {
+                assistant_id: assistant.id,
+            })
+            .on('textCreated', (text) => {
+                resetStreamingText;
+            })
+            .on('textDelta', (textDelta, snapshot) => {
+                if (textDelta.value !== undefined) {
+                    buildStreamingText(textDelta.value);
+                }
+            })
+            .on('textDone', () => {
+                history.push({ role: 'assistant', content: currentResponse });
+                setResponses(history);
+                resetStreamingText();
+            });
+    }
 
     // Call CreateAssistant on first render
     useEffect(() => {
-        createAssistant(settings.openAIKey, setChat, setResponses);
+        async function createAssistant() {
+            assistant = await client.beta.assistants.create({
+                name: 'Japanese Assistant',
+                instructions: systemPrompt,
+                model: 'gpt-4o-mini',
+            });
+            thread = await client.beta.threads.create();
+            sendMessage('Please Introduce Yourself', true);
+        }
+
+        createAssistant();
     }, []);
 
     if (!app) {
@@ -149,7 +151,7 @@ const JPAssistReactView = ({ plugin }: JPAssistReactViewProps) => {
             ></textarea>
             <button
                 onClick={() => {
-                    sendMessage(request, setChat, setResponses);
+                    sendMessage(request, false);
                 }}
                 className="jp-assist-button"
             >
