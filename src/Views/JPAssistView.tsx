@@ -1,6 +1,6 @@
-import { ItemView, WorkspaceLeaf } from "obsidian";
-import { Root, createRoot } from "react-dom/client";
-import { AppContext, useApp } from "src/Context/AppContext";
+import { ItemView, WorkspaceLeaf } from 'obsidian';
+import { Root, createRoot } from 'react-dom/client';
+import { AppContext, useApp } from 'src/Context/AppContext';
 
 const JPAssistReactView = () => {
     const app = useApp();
@@ -14,15 +14,15 @@ const JPAssistReactView = () => {
             <p>Welcome to JPAssist!</p>
             <textarea
                 style={{
-                    width: "100%",
-                    height: "100px",
+                    width: '100%',
+                    height: '100px',
                 }}
             ></textarea>
         </div>
     );
 };
 
-export const JP_ASSIST_VIEW = "jp-assist-view";
+export const JP_ASSIST_VIEW = 'jp-assist-view';
 
 export class JPAssistView extends ItemView {
     root: Root | null = null;
@@ -36,7 +36,7 @@ export class JPAssistView extends ItemView {
     }
 
     getDisplayText() {
-        return "Japanese Assistant... With React!";
+        return 'Japanese Assistant... With React!';
     }
 
     async onOpen() {

@@ -1,10 +1,10 @@
-import { Plugin, WorkspaceLeaf } from "obsidian";
+import { Plugin, WorkspaceLeaf } from 'obsidian';
 import {
     DEFAULT_SETTINGS,
     JPAssistSettings,
     JPAssistSettingTab,
-} from "./src/Settings/Settings";
-import { JP_ASSIST_VIEW, JPAssistView } from "src/Views/JPAssistView";
+} from './src/Settings/Settings';
+import { JP_ASSIST_VIEW, JPAssistView } from 'src/Views/JPAssistView';
 
 export default class JPAssistPlugin extends Plugin {
     settings: JPAssistSettings;
@@ -14,14 +14,14 @@ export default class JPAssistPlugin extends Plugin {
 
         this.registerView(JP_ASSIST_VIEW, (leaf) => new JPAssistView(leaf));
 
-        this.addRibbonIcon("languages", "Japanese Assistant", () => {
+        this.addRibbonIcon('languages', 'Japanese Assistant', () => {
             this.activateView();
         });
 
         // This adds a simple command that can be triggered anywhere
         this.addCommand({
-            id: "open-jp-assist",
-            name: "Open Japanese Assistant",
+            id: 'open-jp-assist',
+            name: 'Open Japanese Assistant',
             callback: () => {
                 this.activateView();
             },
