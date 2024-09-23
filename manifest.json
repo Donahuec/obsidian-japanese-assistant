@@ -1,11 +1,10 @@
 {
-	"id": "sample-plugin",
-	"name": "Sample Plugin",
+	"id": "japanese-assistant",
+	"name": "Japanese Assistant",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "Demonstrates some of the capabilities of the Obsidian API.",
-	"author": "Obsidian",
-	"authorUrl": "https://obsidian.md",
-	"fundingUrl": "https://obsidian.md/pricing",
+	"description": "A plugin with various tools to help Japanese Learners",
+	"author": "Caitlin Donahue",
+	"authorUrl": "https://github.com/Donahuec/obsidian-japanese-assistant",
 	"isDesktopOnly": false
 }
