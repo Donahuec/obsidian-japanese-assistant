@@ -1,45 +1,34 @@
 import { App, ItemView, WorkspaceLeaf } from 'obsidian';
 import { Root, createRoot } from 'react-dom/client';
 import { AppContext, useApp } from 'src/Context/AppContext';
-import './JPAssistView.css';
 import { OpenAI } from 'openai';
 import { useState, useEffect } from 'react';
 import JPAssistPlugin from 'main';
+import Message from 'src/Components/Message';
+import { AssistantConfiguration } from 'src/Assistant/AssistantConfiguration';
+
+let client: OpenAI;
+let assistant: OpenAI.Beta.Assistant;
+let thread: OpenAI.Beta.Threads.Thread;
+let history: JPAssistMessage[] = [];
+let currentResponse = '';
 
 export interface JPAssistMessage {
     role: 'user' | 'assistant';
     content: string;
 }
 
-const systemPrompt = `You are a native Japanese Speaker named Mariko-Sensei tutoring English Speaking students learning Japanese. 
-	You are a helpful tutor to Japanese learners, and always make sure your aid aligns with modern spoken Japanese. 
-	You provide explanations and conversation in English, since your students are early in their learning journey. 
-	You only provide Pronunciation guides when you use kanji, because you want your student to become familiar with reading kanji. 
-	When you provide pronunciation guides, they are provided in hiragana format and NEVER romaji. 
-	You also like to provide cultural context when possible.
-	Any text styling should use html tags. 
-	For instance, bold text should be wrapped in <b> tags, and italics should be wrapped in <em> tags.
-	NEVER use markdown syntax.
-	Avoid large blocks of text. Use short, concise sentences.
-	Use formatting such as <br> tags and bullet points, using <ul></ul> and <ol></ol> formatting to make your responses easier to read.
-	Your students are early in their learning journey, so you should avoid using complex kanji.
-	You should always provide a response in English.
-	`;
-
 interface JPAssistReactViewProps {
     plugin: JPAssistPlugin;
 }
 
 const JPAssistReactView = ({ plugin }: JPAssistReactViewProps) => {
-    const defaultRequest = '';
     const app: App | undefined = useApp();
     const [chat, setChat] = useState<string | null>('');
     const [responses, setResponses] = useState<JPAssistMessage[]>([]);
-    const [request, setRequest] = useState<string>(defaultRequest);
-    let tr = '';
+    const [request, setRequest] = useState<string>('');
 
-    let history: JPAssistMessage[] = [];
-    let currentResponse = '';
+    const assistantConfiguration = new AssistantConfiguration();
 
     plugin.loadSettings();
     const settings = plugin.settings;
@@ -47,12 +36,10 @@ const JPAssistReactView = ({ plugin }: JPAssistReactViewProps) => {
         return <h4>OpenAI Key not set</h4>;
     }
 
-    let client: OpenAI = new OpenAI({
+    client = new OpenAI({
         apiKey: settings.openAIKey,
-        dangerouslyAllowBrowser: true, // This is the default and can be omitted
+        dangerouslyAllowBrowser: true,
     });
-    let assistant: OpenAI.Beta.Assistant;
-    let thread: OpenAI.Beta.Threads.Thread;
 
     function buildStreamingText(text: string) {
         currentResponse += text;
@@ -71,6 +58,8 @@ const JPAssistReactView = ({ plugin }: JPAssistReactViewProps) => {
             resetStreamingText();
         }
 
+        buildStreamingText('Generating...');
+
         const message = await client.beta.threads.messages.create(thread.id, {
             role: 'user',
             content: text,
@@ -80,7 +69,7 @@ const JPAssistReactView = ({ plugin }: JPAssistReactViewProps) => {
                 assistant_id: assistant.id,
             })
             .on('textCreated', (text) => {
-                resetStreamingText;
+                resetStreamingText();
             })
             .on('textDelta', (textDelta, snapshot) => {
                 if (textDelta.value !== undefined) {
@@ -97,11 +86,9 @@ const JPAssistReactView = ({ plugin }: JPAssistReactViewProps) => {
     // Call CreateAssistant on first render
     useEffect(() => {
         async function createAssistant() {
-            assistant = await client.beta.assistants.create({
-                name: 'Japanese Assistant',
-                instructions: systemPrompt,
-                model: 'gpt-4o-mini',
-            });
+            assistant = await client.beta.assistants.create(
+                assistantConfiguration.config
+            );
             thread = await client.beta.threads.create();
             sendMessage('Please Introduce Yourself', true);
         }
@@ -113,50 +100,51 @@ const JPAssistReactView = ({ plugin }: JPAssistReactViewProps) => {
         return <h4>App not available</h4>;
     }
 
+    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        sendMessage(request, false);
+        setRequest(''); // Clear the textarea input
+    };
+
+    const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            handleSubmit(event as unknown as React.FormEvent<HTMLFormElement>);
+        }
+    };
+
     return (
         <div className="jp-assist-container">
             <h1 className="chat-title">Welcome to JPAssist!</h1>
             <div className="chat-content">
                 {responses.map((response, index) => (
-                    <p key={index} className={response.role + '-message'}>
-                        <b>
-                            {response.role === 'user'
-                                ? 'You: '
-                                : 'JP Assistant: '}
-                        </b>
-                        <span
-                            dangerouslySetInnerHTML={{
-                                __html: response.content,
-                            }}
-                        />
-                    </p>
+                    <Message
+                        key={index}
+                        index={index}
+                        role={response.role}
+                        content={response.content}
+                    />
                 ))}
-                <p
-                    className="assistant message"
-                    dangerouslySetInnerHTML={{
-                        __html: chat || '',
-                    }}
-                ></p>
+                {chat ? (
+                    <Message
+                        key={0}
+                        index={0}
+                        role={'assistant'}
+                        content={chat}
+                    />
+                ) : null}
             </div>
-            <textarea
-                className="chat-input"
-                style={{
-                    width: '100%',
-                    height: '100px',
-                }}
-                defaultValue={tr}
-                onChange={(e) => {
-                    setRequest(e.target.value);
-                }}
-            ></textarea>
-            <button
-                onClick={() => {
-                    sendMessage(request, false);
-                }}
-                className="jp-assist-button"
-            >
-                Submit
-            </button>
+            <form className="chat-form" onSubmit={handleSubmit}>
+                <textarea
+                    className="chat-input"
+                    value={request}
+                    onChange={(e) => setRequest(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                ></textarea>
+                <button type="submit" className="jp-assist-button">
+                    Submit
+                </button>
+            </form>
         </div>
     );
 };
@@ -177,7 +165,7 @@ export class JPAssistView extends ItemView {
     }
 
     getDisplayText() {
-        return 'Japanese Assistant... With React!';
+        return 'Japanese Assistant';
     }
 
     async onOpen() {
