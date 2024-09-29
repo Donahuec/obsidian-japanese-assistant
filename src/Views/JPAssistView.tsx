@@ -86,9 +86,16 @@ const JPAssistReactView = ({ plugin }: JPAssistReactViewProps) => {
     // Call CreateAssistant on first render
     useEffect(() => {
         async function createAssistant() {
-            assistant = await client.beta.assistants.create(
-                assistantConfiguration.config
-            );
+            if (settings.assistantKey) {
+                assistant = await client.beta.assistants.retrieve(
+                    settings.assistantKey
+                );
+            } else {
+                assistant = await client.beta.assistants.create(
+                    assistantConfiguration.config
+                );
+            }
+
             thread = await client.beta.threads.create();
             sendMessage('Please Introduce Yourself', true);
         }
