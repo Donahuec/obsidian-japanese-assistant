@@ -11,9 +11,9 @@ const Message: React.FC<MessageProps> = ({ index, role, content }) => {
                 {role === 'user' ? 'You' : 'JP Assistant'}
             </b>
             <br />
-            <div className="message-content">
+            <p className="message-content">
                 <span dangerouslySetInnerHTML={{ __html: content }} />
-            </div>
+            </p>
         </div>
     );
 };

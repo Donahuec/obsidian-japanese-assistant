@@ -34,6 +34,8 @@ If your plugin does not need CSS, delete this file.
         margin-block: 5px;
         border: 1px solid var(--background-modifier-border);
         border-radius: var(--input-radius);
+        user-select: text !important;
+        -webkit-user-select: text !important;
     }
 }
 

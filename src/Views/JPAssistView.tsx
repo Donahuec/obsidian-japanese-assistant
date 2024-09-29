@@ -2,7 +2,7 @@ import { App, ItemView, WorkspaceLeaf } from 'obsidian';
 import { Root, createRoot } from 'react-dom/client';
 import { AppContext, useApp } from 'src/Context/AppContext';
 import { OpenAI } from 'openai';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import JPAssistPlugin from 'main';
 import Message from 'src/Components/Message';
 import { AssistantConfiguration } from 'src/Assistant/AssistantConfiguration';
@@ -27,6 +27,8 @@ const JPAssistReactView = ({ plugin }: JPAssistReactViewProps) => {
     const [chat, setChat] = useState<string | null>('');
     const [responses, setResponses] = useState<JPAssistMessage[]>([]);
     const [request, setRequest] = useState<string>('');
+
+    const scrollRef = useRef<HTMLDivElement | null>(null);
 
     const assistantConfiguration = new AssistantConfiguration();
 
@@ -103,6 +105,12 @@ const JPAssistReactView = ({ plugin }: JPAssistReactViewProps) => {
         createAssistant();
     }, []);
 
+    useEffect(() => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [chat]);
+
     if (!app) {
         return <h4>App not available</h4>;
     }
@@ -114,7 +122,7 @@ const JPAssistReactView = ({ plugin }: JPAssistReactViewProps) => {
     };
 
     const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        if (event.key === 'Enter' && !event.shiftKey) {
+        if (event.key === 'Enter' && event.shiftKey) {
             event.preventDefault();
             handleSubmit(event as unknown as React.FormEvent<HTMLFormElement>);
         }
@@ -140,6 +148,7 @@ const JPAssistReactView = ({ plugin }: JPAssistReactViewProps) => {
                         content={chat}
                     />
                 ) : null}
+                <div ref={scrollRef} />
             </div>
             <form className="chat-form" onSubmit={handleSubmit}>
                 <textarea
