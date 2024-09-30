@@ -89,13 +89,16 @@ const JPAssistReactView = ({ plugin }: JPAssistReactViewProps) => {
     useEffect(() => {
         async function createAssistant() {
             if (settings.assistantKey) {
-                assistant = await client.beta.assistants.retrieve(
-                    settings.assistantKey
+                assistant = await client.beta.assistants.update(
+                    settings.assistantKey,
+                    { instructions: assistantConfiguration.systemPrompt }
                 );
             } else {
                 assistant = await client.beta.assistants.create(
                     assistantConfiguration.config
                 );
+                settings.assistantKey = assistant.id;
+                plugin.saveSettings();
             }
 
             thread = await client.beta.threads.create();

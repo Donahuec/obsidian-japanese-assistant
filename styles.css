@@ -23,14 +23,14 @@ If your plugin does not need CSS, delete this file.
 
 .chat-input {
     width: 100%;
-    height: 50px;
+    height: 100px;
     margin-bottom: 10px;
 }
 
 .message {
     .message-content {
         background-color: var(--background-modifier-form-field);
-        padding: 10px;
+        padding-inline: 10px;
         margin-block: 5px;
         border: 1px solid var(--background-modifier-border);
         border-radius: var(--input-radius);
