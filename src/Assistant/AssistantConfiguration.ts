@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import { systemPrompt } from 'src/Prompts/System';
 
 async function loadTextFile(filePath: string): Promise<string> {
     try {
@@ -11,29 +12,16 @@ async function loadTextFile(filePath: string): Promise<string> {
 }
 
 export class AssistantConfiguration {
-    public systemPrompt: string;
-    public promptFile: string = 'src/Prompts/System.txt';
     public name: string = 'Japanese Assistant';
-    public instructions: string;
+    public instructions: string = systemPrompt;
     public model: string = 'gpt-4o-mini';
     public config: any;
 
     constructor() {
-        this.loadSystemPrompt(this.promptFile);
-
         this.config = {
             name: this.name,
-            instructions: this.systemPrompt,
+            instructions: systemPrompt,
             model: this.model,
         };
-    }
-
-    private async loadSystemPrompt(filePath: string) {
-        try {
-            this.systemPrompt = await loadTextFile(filePath);
-        } catch (err) {
-            console.error('Error loading system prompt:', err);
-            this.systemPrompt = ''; // Fallback to an empty string or handle as needed
-        }
     }
 }

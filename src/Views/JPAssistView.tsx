@@ -91,7 +91,7 @@ const JPAssistReactView = ({ plugin }: JPAssistReactViewProps) => {
             if (settings.assistantKey) {
                 assistant = await client.beta.assistants.update(
                     settings.assistantKey,
-                    { instructions: assistantConfiguration.systemPrompt }
+                    { instructions: assistantConfiguration.instructions }
                 );
             } else {
                 assistant = await client.beta.assistants.create(
@@ -125,7 +125,11 @@ const JPAssistReactView = ({ plugin }: JPAssistReactViewProps) => {
     };
 
     const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        if (event.key === 'Enter' && event.shiftKey) {
+        if (
+            event.key === 'Enter' &&
+            !event.nativeEvent.isComposing &&
+            !event.shiftKey
+        ) {
             event.preventDefault();
             handleSubmit(event as unknown as React.FormEvent<HTMLFormElement>);
         }
