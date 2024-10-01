@@ -1,15 +1,10 @@
 import { App, ItemView, WorkspaceLeaf } from 'obsidian';
 import { Root, createRoot } from 'react-dom/client';
 import { AppContext, useApp } from 'src/Context/AppContext';
-import { OpenAI } from 'openai';
 import { useState, useEffect, useRef } from 'react';
 import JPAssistPlugin from 'main';
 import Message from 'src/Components/Message';
-import { AssistantConfiguration } from 'src/Assistant/AssistantConfiguration';
 
-let client: OpenAI;
-let assistant: OpenAI.Beta.Assistant;
-let thread: OpenAI.Beta.Threads.Thread;
 let history: JPAssistMessage[] = [];
 let currentResponse = '';
 
@@ -30,18 +25,13 @@ const JPAssistReactView = ({ plugin }: JPAssistReactViewProps) => {
 
     const scrollRef = useRef<HTMLDivElement | null>(null);
 
-    const assistantConfiguration = new AssistantConfiguration();
-
-    plugin.loadSettings();
-    const settings = plugin.settings;
-    if (!settings.openAIKey) {
+    if (!plugin.settings.openAIKey) {
         return <h4>OpenAI Key not set</h4>;
     }
 
-    client = new OpenAI({
-        apiKey: settings.openAIKey,
-        dangerouslyAllowBrowser: true,
-    });
+    if (!app) {
+        return <h4>App not available</h4>;
+    }
 
     function buildStreamingText(text: string) {
         currentResponse += text;
@@ -62,22 +52,30 @@ const JPAssistReactView = ({ plugin }: JPAssistReactViewProps) => {
 
         buildStreamingText('Generating...');
 
-        const message = await client.beta.threads.messages.create(thread.id, {
-            role: 'user',
-            content: text,
-        });
-        const run = client.beta.threads.runs
-            .stream(thread.id, {
-                assistant_id: assistant.id,
+        console.log(plugin.thread);
+
+        const message = await plugin.client.beta.threads.messages.create(
+            plugin.thread.id,
+            {
+                role: 'user',
+                content: text,
+            }
+        );
+        const run = plugin.client.beta.threads.runs
+            .stream(plugin.thread.id, {
+                assistant_id: plugin.assistant.id,
             })
-            .on('textCreated', (text) => {
+            .on('textCreated', (_text: any) => {
                 resetStreamingText();
             })
-            .on('textDelta', (textDelta, snapshot) => {
-                if (textDelta.value !== undefined) {
-                    buildStreamingText(textDelta.value);
+            .on(
+                'textDelta',
+                (textDelta: { value: string | undefined }, _snapshot: any) => {
+                    if (textDelta.value !== undefined) {
+                        buildStreamingText(textDelta.value);
+                    }
                 }
-            })
+            )
             .on('textDone', () => {
                 history.push({ role: 'assistant', content: currentResponse });
                 setResponses(history);
@@ -85,27 +83,8 @@ const JPAssistReactView = ({ plugin }: JPAssistReactViewProps) => {
             });
     }
 
-    // Call CreateAssistant on first render
     useEffect(() => {
-        async function createAssistant() {
-            if (settings.assistantKey) {
-                assistant = await client.beta.assistants.update(
-                    settings.assistantKey,
-                    { instructions: assistantConfiguration.instructions }
-                );
-            } else {
-                assistant = await client.beta.assistants.create(
-                    assistantConfiguration.config
-                );
-                settings.assistantKey = assistant.id;
-                plugin.saveSettings();
-            }
-
-            thread = await client.beta.threads.create();
-            sendMessage('Please Introduce Yourself', true);
-        }
-
-        createAssistant();
+        sendMessage('Please Introduce Yourself', true);
     }, []);
 
     useEffect(() => {
@@ -113,10 +92,6 @@ const JPAssistReactView = ({ plugin }: JPAssistReactViewProps) => {
             scrollRef.current.scrollIntoView({ behavior: 'smooth' });
         }
     }, [chat]);
-
-    if (!app) {
-        return <h4>App not available</h4>;
-    }
 
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();

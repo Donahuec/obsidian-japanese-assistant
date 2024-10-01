@@ -5,12 +5,19 @@ import {
     JPAssistSettingTab,
 } from './src/Settings/Settings';
 import { JP_ASSIST_VIEW, JPAssistView } from 'src/Views/JPAssistView';
+import OpenAI from 'openai';
+import { Assistant } from 'src/LLM/Assistant';
 
 export default class JPAssistPlugin extends Plugin {
-    settings: JPAssistSettings;
+    public settings: JPAssistSettings;
+    public client: OpenAI;
+    public assistant: Assistant;
+    public thread: OpenAI.Beta.Thread;
+    public loaded: boolean = false;
 
     async onload() {
         await this.loadSettings();
+        await this.llmSetup();
 
         this.registerView(
             JP_ASSIST_VIEW,
@@ -69,5 +76,25 @@ export default class JPAssistPlugin extends Plugin {
 
     async saveSettings() {
         await this.saveData(this.settings);
+    }
+
+    async llmSetup() {
+        this.client = new OpenAI({
+            apiKey: this.settings.openAIKey,
+            dangerouslyAllowBrowser: true,
+        });
+
+        this.assistant = new Assistant(this, this.client);
+
+        if (this.settings.assistantKey) {
+            this.assistant.updateAssistant();
+        } else {
+            let id = await this.assistant.createAssistant();
+            this.settings.assistantKey = id;
+            this.saveSettings();
+        }
+
+        this.thread = await this.client.beta.threads.create();
+        this.loaded = true;
     }
 }
