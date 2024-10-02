@@ -1,7 +1,6 @@
 import JPAssistPlugin from 'main';
 import OpenAI from 'openai';
 import { systemPrompt } from 'src/Prompts/System';
-import { JPAssistSettings } from 'src/Settings/Settings';
 
 export class Assistant {
     public name: string = 'Japanese Assistant';

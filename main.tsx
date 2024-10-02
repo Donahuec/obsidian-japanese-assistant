@@ -5,14 +5,11 @@ import {
     JPAssistSettingTab,
 } from './src/Settings/Settings';
 import { JP_ASSIST_VIEW, JPAssistView } from 'src/Views/JPAssistView';
-import OpenAI from 'openai';
-import { Assistant } from 'src/LLM/Assistant';
+import { OpenAIClient } from 'src/LLM/OpenAIClient';
 
 export default class JPAssistPlugin extends Plugin {
     public settings: JPAssistSettings;
-    public client: OpenAI;
-    public assistant: Assistant;
-    public thread: OpenAI.Beta.Thread;
+    public client: OpenAIClient;
     public loaded: boolean = false;
 
     async onload() {
@@ -34,6 +31,22 @@ export default class JPAssistPlugin extends Plugin {
             name: 'Open Japanese Assistant',
             callback: () => {
                 this.activateView();
+            },
+        });
+
+        this.addCommand({
+            id: 'jp-assist-reset-thread',
+            name: 'Reset Thread',
+            callback: () => {
+                this.client.initializeThread();
+            },
+        });
+
+        this.addCommand({
+            id: 'jp-assist-reload-assistant',
+            name: 'Reload Assistant',
+            callback: () => {
+                this.client.initializeAssistant();
             },
         });
 
@@ -79,22 +92,12 @@ export default class JPAssistPlugin extends Plugin {
     }
 
     async llmSetup() {
-        this.client = new OpenAI({
-            apiKey: this.settings.openAIKey,
-            dangerouslyAllowBrowser: true,
-        });
-
-        this.assistant = new Assistant(this, this.client);
-
-        if (this.settings.assistantKey) {
-            this.assistant.updateAssistant();
-        } else {
-            let id = await this.assistant.createAssistant();
-            this.settings.assistantKey = id;
-            this.saveSettings();
+        if (!this.settings.openAIKey) {
+            console.error('OpenAI API key not set');
+            return;
         }
-
-        this.thread = await this.client.beta.threads.create();
+        this.client = new OpenAIClient(this);
+        await this.client.initializeSession();
         this.loaded = true;
     }
 }
