@@ -19,55 +19,47 @@ interface ChatProps {
 
 const Chat = ({ plugin }: ChatProps) => {
     const app: App | undefined = useApp();
-    const [chat, setChat] = useState<string | null>('');
     const [responses, setResponses] = useState<JPAssistMessage[]>([]);
+    const [status, setStatus] = useState<string>('idle');
+    const [ellipsis, setEllipsis] = useState('');
 
-    function buildStreamingText(text: string) {
-        currentResponse += text;
-        setChat(currentResponse);
-    }
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setEllipsis((prev) => {
+                if (prev.length < 3) {
+                    return prev + '.';
+                } else {
+                    return '';
+                }
+            });
+        }, 500);
 
-    function resetStreamingText() {
-        currentResponse = '';
-        setChat(currentResponse);
-    }
+        return () => clearInterval(interval);
+    }, []);
 
     async function sendMessage(text: string, hidden: boolean = false) {
         if (!hidden) {
             history.push({ role: 'user', content: text });
             setResponses(history);
-            resetStreamingText();
         }
-
-        buildStreamingText('Generating...');
+        setStatus('sending');
 
         await plugin.client.createMessage('user', text);
 
         plugin.client
             .runWithStream()
             .on('textCreated', (_text: any) => {
-                resetStreamingText();
+                setStatus('generating');
             })
-            .on(
-                'textDelta',
-                (textDelta: { value: string | undefined }, _snapshot: any) => {
-                    if (textDelta.value !== undefined) {
-                        buildStreamingText(textDelta.value);
-                    }
-                }
-            )
-            .on('textDone', () => {
-                history.push({ role: 'assistant', content: currentResponse });
+            .on('textDone', (text: any) => {
+                setStatus('idle');
+                history.push({ role: 'assistant', content: text.value });
                 setResponses(history);
-                resetStreamingText();
             });
     }
 
     useEffect(() => {
-        sendMessage(
-            'What is the most important thing to learn about the Japanese Language?',
-            true
-        );
+        sendMessage('Tell me a "fact of the day" about Japan.', true);
     }, []);
 
     // Auto scroll to the bottom of the chat
@@ -76,7 +68,7 @@ const Chat = ({ plugin }: ChatProps) => {
         if (scrollRef.current) {
             scrollRef.current.scrollIntoView({ behavior: 'smooth' });
         }
-    }, [chat]);
+    }, [status]);
 
     return (
         <div className="jp-assist-container">
@@ -90,13 +82,15 @@ const Chat = ({ plugin }: ChatProps) => {
                         content={response.content}
                     />
                 ))}
-                {chat ? (
-                    <Message
-                        key={0}
-                        index={0}
-                        role={'assistant'}
-                        content={chat}
-                    />
+                {status != 'idle' ? (
+                    <span>
+                        <Message
+                            key={0}
+                            index={0}
+                            role={'assistant'}
+                            content={status + ellipsis}
+                        />
+                    </span>
                 ) : null}
                 <div ref={scrollRef} />
             </div>
