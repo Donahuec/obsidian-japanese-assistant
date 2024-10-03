@@ -1,6 +1,6 @@
 import { ItemView, WorkspaceLeaf } from 'obsidian';
 import { Root, createRoot } from 'react-dom/client';
-import { AppContext } from 'src/Context/AppContext';
+import { PluginContext } from 'src/Context/Context';
 import JPAssistPlugin from 'main';
 import Chat from 'src/Components/Chat';
 
@@ -31,9 +31,9 @@ export class JPAssistView extends ItemView {
             this.root.render(<h4>OpenAI Key not set</h4>);
         } else {
             this.root.render(
-                <AppContext.Provider value={this.app}>
-                    <Chat plugin={this.plugin} />
-                </AppContext.Provider>
+                <PluginContext.Provider value={this.plugin}>
+                    <Chat />
+                </PluginContext.Provider>
             );
         }
     }

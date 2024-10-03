@@ -1,24 +1,18 @@
 import JPAssistPlugin from 'main';
-import { App } from 'obsidian';
 import { useState, useEffect, useRef } from 'react';
-import { useApp } from 'src/Context/AppContext';
+import { usePlugin } from 'src/Context/Context';
 import Message from './Message';
 import UserInput from './UserInput';
 
 let history: JPAssistMessage[] = [];
-let currentResponse = '';
 
 export interface JPAssistMessage {
     role: 'user' | 'assistant';
     content: string;
 }
 
-interface ChatProps {
-    plugin: JPAssistPlugin;
-}
-
-const Chat = ({ plugin }: ChatProps) => {
-    const app: App | undefined = useApp();
+const Chat = () => {
+    const plugin: JPAssistPlugin = usePlugin() as JPAssistPlugin;
     const [responses, setResponses] = useState<JPAssistMessage[]>([]);
     const [status, setStatus] = useState<string>('idle');
     const [ellipsis, setEllipsis] = useState('');
