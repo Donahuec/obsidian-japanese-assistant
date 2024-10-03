@@ -52,10 +52,6 @@ const Chat = () => {
             });
     }
 
-    useEffect(() => {
-        sendMessage('Tell me a "fact of the day" about Japan.', true);
-    }, []);
-
     // Auto scroll to the bottom of the chat
     const scrollRef = useRef<HTMLDivElement | null>(null);
     useEffect(() => {

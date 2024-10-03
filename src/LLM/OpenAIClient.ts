@@ -22,6 +22,7 @@ export class OpenAIClient {
 
     public async initializeAssistant() {
         this.assistant = new Assistant(this.plugin, this.client);
+        await this.assistant.initializeConfig();
 
         if (this.plugin.settings.assistantKey) {
             await this.assistant.updateAssistant();
