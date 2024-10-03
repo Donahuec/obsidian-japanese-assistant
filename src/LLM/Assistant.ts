@@ -6,7 +6,6 @@ import { systemPrompt } from 'src/Prompts/System';
 export class Assistant {
     public name: string = 'Japanese Assistant';
     public instructions: string = systemPrompt;
-    public model: string = 'gpt-4o-mini';
     public assistant: OpenAI.Beta.Assistant;
     public id: string;
 
@@ -65,9 +64,9 @@ export class Assistant {
 
     public async createAssistant(): Promise<string> {
         this.assistant = await this.client.beta.assistants.create({
-            name: this.name,
+            name: this.name + ' - ' + this.plugin.app.vault.getName(),
             instructions: this.instructions,
-            model: this.model,
+            model: this.plugin.settings.model,
         });
         this.plugin.settings.assistantKey = this.assistant.id;
         this.id = this.assistant.id;
@@ -77,7 +76,10 @@ export class Assistant {
     public async updateAssistant(): Promise<string> {
         this.assistant = await this.client.beta.assistants.update(
             this.plugin.settings.assistantKey,
-            { instructions: this.instructions }
+            {
+                instructions: this.instructions,
+                model: this.plugin.settings.model,
+            }
         );
         this.id = this.assistant.id;
         return this.assistant.id;

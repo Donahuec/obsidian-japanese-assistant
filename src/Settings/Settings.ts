@@ -4,6 +4,7 @@ import { PluginSettingTab, App, Setting } from 'obsidian';
 export interface JPAssistSettings {
     openAIKey: string;
     assistantKey: string;
+    model: string;
     useCustomPrompts: boolean;
     promptPath: string;
     prompts: string[];
@@ -12,6 +13,7 @@ export interface JPAssistSettings {
 export const DEFAULT_SETTINGS: JPAssistSettings = {
     openAIKey: '',
     assistantKey: '',
+    model: 'gpt-4o-mini',
     useCustomPrompts: false,
     promptPath: '',
     prompts: [],
@@ -52,6 +54,19 @@ export class JPAssistSettingTab extends PluginSettingTab {
                     .setValue(this.plugin.settings.assistantKey)
                     .onChange(async (value) => {
                         this.plugin.settings.assistantKey = value;
+                        await this.plugin.saveSettings();
+                    })
+            );
+
+        new Setting(containerEl)
+            .setName('OpenAI Model')
+            .setDesc('Model to use for Open AI')
+            .addText((text) =>
+                text
+                    .setPlaceholder('')
+                    .setValue(this.plugin.settings.model)
+                    .onChange(async (value) => {
+                        this.plugin.settings.model = value;
                         await this.plugin.saveSettings();
                     })
             );
